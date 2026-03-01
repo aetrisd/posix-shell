@@ -7,11 +7,14 @@ int main(int argc, char *argv[]) {
   setbuf(stdout, NULL);
 
   char command[1024];
-  //while (strcmp(command, "quit") != 0) //more sensible but tests may not pass
   while (1)
   {
     printf("$ ");
     scanf("%s", &command);
+    if (strcmp(command, "exit") == 0)
+    {
+      break;
+    }
     printf("%s: command not found\n", command);
   }
 
