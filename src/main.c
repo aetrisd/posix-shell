@@ -25,7 +25,7 @@ enum command parse_command(char *command)
 
   if (strncmp(command, "echo", command_len) == 0)
     return echo;
-  else if (strncmp(command, "escape", command_len) == 0)
+  else if (strncmp(command, "exit", command_len) == 0)
     return escape;
   else
     return unknown;
@@ -38,6 +38,7 @@ int main(int argc, char *argv[]) {
     setbuf(stdout, nullptr);
     printf("$ ");
     fgets(command, sizeof(command), stdin);
+    command[strcspn(command, "\n")] = '\0';
 
     switch (parse_command(command))
     {
