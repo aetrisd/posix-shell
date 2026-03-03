@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
       printf("%s\n", command+5);
       break;
     case escape:
-      exit(1);
+      exit(0);
       break;
     case unknown:
       printf("%s: command not found\n", command);
