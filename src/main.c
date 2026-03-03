@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
       if (parse_command(command+5) != unknown)
         printf("%s is a shell builtin\n", command+5);
       else
-        printf("%s: command not found\n", command+5);
+        printf("%s: not found\n", command+5);
       break;
     case unknown:
       printf("%s: command not found\n", command);
