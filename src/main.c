@@ -22,9 +22,37 @@ struct command
 {
   enum command_type command_type;
   enum builtin builtin;
-  char* arguments;
+  char* arguments; //single string
+  int args_count;
+  char** args_array;
   char* executable_location;
 };
+
+char** split_args(char* arguments, int *count)
+{
+  char *copy = strdup(arguments);
+  char **result = nullptr;
+  *count = 0;
+
+  char *tok = strtok(copy, " ");
+  while (tok) {
+    char **tmp = realloc(result, sizeof(char *) * (*count + 1));
+    if (!tmp) {
+      for (int i = 0; i < *count; i++) free(result[i]);
+      free(result);
+      free(copy);
+      *count = 0;
+      return nullptr;
+    }
+    result = tmp;
+    result[*count] = strdup(tok);
+    (*count)++;
+    tok = strtok(nullptr, " ");
+  }
+
+  free(copy);
+  return result;
+}
 
 struct command parse_buffer(char *buffer)
 {
@@ -35,13 +63,16 @@ struct command parse_buffer(char *buffer)
   if (first_word_len == 0)//Throw away if empty
     return (struct command){COMMAND_UNKNOWN};
 
+  int args_count = 0;
+  char** args_arr = split_args(args, &args_count);
+
   //Check for builtins
   if (strcmp(first_word, "echo") == 0)
-    return (struct command){COMMAND_BUILTIN, BUILTIN_ECHO, args};
+    return (struct command){COMMAND_BUILTIN, BUILTIN_ECHO, args, args_count, args_arr};
   if (strcmp(first_word, "exit") == 0)
-    return (struct command){COMMAND_BUILTIN, BUILTIN_EXIT, args};
+    return (struct command){COMMAND_BUILTIN, BUILTIN_EXIT, args, args_count, args_arr};
   if (strcmp(first_word, "type") == 0)
-    return (struct command){COMMAND_BUILTIN, BUILTIN_TYPE, args};
+    return (struct command){COMMAND_BUILTIN, BUILTIN_TYPE, args, args_count, args_arr};
 
   //Check for executables
   const char *env_path = getenv("PATH");
@@ -53,7 +84,7 @@ struct command parse_buffer(char *buffer)
     if (access(tmp, X_OK) == 0)
     {
       char* exe_path = strdup(tmp);
-      return (struct command){COMMAND_EXECUTABLE, BUILTIN_NONE, args, exe_path};
+      return (struct command){COMMAND_EXECUTABLE, BUILTIN_NONE, args, args_count, args_arr, exe_path};
     }
     p = strtok(nullptr, ":");
   }
@@ -93,9 +124,9 @@ void run_builtin(enum builtin builtin, char* arguments)
   }
 }
 
-void run_exec(char* executable_location, char* arguments)
+void run_exec(char* executable_location, char** args_arr)
 {
-  printf("%s\n", executable_location);
+  execv(executable_location, args_arr);
 }
 
 int main(int argc, char *argv[]) {
@@ -115,7 +146,7 @@ int main(int argc, char *argv[]) {
       run_builtin(c.builtin, c.arguments);
       break;
     case COMMAND_EXECUTABLE:
-      run_exec(c.executable_location, c.arguments);
+      run_exec(c.executable_location, c.args_array);
       break;
     default:
     case COMMAND_UNKNOWN:
