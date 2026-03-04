@@ -22,24 +22,26 @@ struct command
 {
   enum command_type command_type;
   enum builtin builtin;
-  char* executable_location;
   char* arguments;
+  char* executable_location;
 };
 
 struct command parse_buffer(char *buffer)
 {
   char *first_word = strtok(buffer, " ");
+  int first_word_len = (int)strlen(first_word);
+  char *args = first_word + first_word_len + 1;
 
-  if (strlen(first_word) == 0)//Throw away if empty
-    return (struct command){COMMAND_UNKNOWN, BUILTIN_NONE, "", ""};
+  if (first_word_len == 0)//Throw away if empty
+    return (struct command){COMMAND_UNKNOWN};
 
   //Check for builtins
   if (strcmp(first_word, "echo") == 0)
-    return (struct command){COMMAND_BUILTIN, BUILTIN_ECHO, "", buffer+5};
+    return (struct command){COMMAND_BUILTIN, BUILTIN_ECHO, args};
   if (strcmp(first_word, "exit") == 0)
-    return (struct command){COMMAND_BUILTIN, BUILTIN_EXIT, "", buffer+5};
+    return (struct command){COMMAND_BUILTIN, BUILTIN_EXIT, args};
   if (strcmp(first_word, "type") == 0)
-    return (struct command){COMMAND_BUILTIN, BUILTIN_TYPE, "", buffer+5};
+    return (struct command){COMMAND_BUILTIN, BUILTIN_TYPE, args};
 
   //Check for executables
   const char *env_path = getenv("PATH");
@@ -51,12 +53,13 @@ struct command parse_buffer(char *buffer)
     if (access(tmp, X_OK) == 0)
     {
       char* exe_path = strdup(tmp);
-      return (struct command){COMMAND_EXECUTABLE, BUILTIN_NONE, exe_path, buffer+strlen(first_word)+1};
+      return (struct command){COMMAND_EXECUTABLE, BUILTIN_NONE, args, exe_path};
     }
     p = strtok(nullptr, ":");
   }
 
-  return (struct command){COMMAND_UNKNOWN, BUILTIN_NONE, "", buffer};;
+  //Nothing found
+  return (struct command){COMMAND_UNKNOWN};;
 }
 
 void run_builtin(enum builtin builtin, char* arguments)
