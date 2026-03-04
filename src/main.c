@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <linux/limits.h>
 
 enum command_type
 {
@@ -17,6 +18,7 @@ enum builtin
   BUILTIN_ECHO,
   BUILTIN_EXIT,
   BUILTIN_TYPE,
+  BUILTIN_PWD,
   BUILTIN_NONE,
 };
 
@@ -82,6 +84,8 @@ struct command parse_buffer(char *buffer)
     return (struct command){COMMAND_BUILTIN, BUILTIN_EXIT, argument_count, arguments};
   if (strcmp(arguments[0], "type") == 0)
     return (struct command){COMMAND_BUILTIN, BUILTIN_TYPE, argument_count, arguments};
+  if (strcmp(arguments[0], "pwd") == 0)
+    return (struct command){COMMAND_BUILTIN, BUILTIN_PWD, argument_count, arguments};
 
   //Check for executables
   const char *env_path = getenv("PATH");
@@ -129,6 +133,11 @@ void run_builtin(enum builtin builtin, int argument_count, char** arguments)
     default:
       printf("%s: not found\n", arguments[1]);
     }
+    break;
+  case BUILTIN_PWD:
+    char cwd[PATH_MAX];
+    getcwd(cwd, sizeof(cwd));
+    printf("%s\n", cwd);
     break;
   default:
     printf("An error has occurred.\n");
