@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 enum command_type
 {
@@ -26,22 +27,30 @@ struct command
 
 struct command parse_buffer(char *buffer)
 {
-  const char *space = strchr(buffer, ' ');
-  const int command_len = space ? space - buffer : (int)strlen(buffer);
-  //Throw away if empty
-  if (command_len == 0)
+  char *first_word = strtok(buffer, " ");
+
+  if (strlen(first_word) == 0)//Throw away if empty
     return (struct command){COMMAND_UNKNOWN, BUILTIN_NONE, ""};
 
   //Check for builtins
-  if (strncmp(buffer, "echo", command_len) == 0)
+  if (strcmp(first_word, "echo") == 0)
     return (struct command){COMMAND_BUILTIN, BUILTIN_ECHO, buffer+5};
-  if (strncmp(buffer, "exit", command_len) == 0)
+  if (strcmp(first_word, "exit") == 0)
     return (struct command){COMMAND_BUILTIN, BUILTIN_EXIT, buffer+5};
-  if (strncmp(buffer, "type", command_len) == 0)
+  if (strcmp(first_word, "type") == 0)
     return (struct command){COMMAND_BUILTIN, BUILTIN_TYPE, buffer+5};
 
   //Check for executables
   const char *path = getenv("PATH");
+  char *p = strtok(path, ":");
+  while (p) {
+    //strcat(p, "/");
+    //strcat(p, buffer);
+    printf("%s\n", p);
+    //if (access(p, X_OK) == 0)
+      //return (struct command){COMMAND_EXECUTABLE, BUILTIN_NONE, buffer+command_len};
+    p = strtok(nullptr, ":");
+  }
   //printf("%s", path);
 
   return (struct command){COMMAND_UNKNOWN, BUILTIN_NONE, buffer};;
