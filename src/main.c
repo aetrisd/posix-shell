@@ -22,6 +22,7 @@ struct command
 {
   enum command_type command_type;
   enum builtin builtin;
+  char* executable_location;
   char* arguments;
 };
 
@@ -30,30 +31,32 @@ struct command parse_buffer(char *buffer)
   char *first_word = strtok(buffer, " ");
 
   if (strlen(first_word) == 0)//Throw away if empty
-    return (struct command){COMMAND_UNKNOWN, BUILTIN_NONE, ""};
+    return (struct command){COMMAND_UNKNOWN, BUILTIN_NONE, "", ""};
 
   //Check for builtins
   if (strcmp(first_word, "echo") == 0)
-    return (struct command){COMMAND_BUILTIN, BUILTIN_ECHO, buffer+5};
+    return (struct command){COMMAND_BUILTIN, BUILTIN_ECHO, "", buffer+5};
   if (strcmp(first_word, "exit") == 0)
-    return (struct command){COMMAND_BUILTIN, BUILTIN_EXIT, buffer+5};
+    return (struct command){COMMAND_BUILTIN, BUILTIN_EXIT, "", buffer+5};
   if (strcmp(first_word, "type") == 0)
-    return (struct command){COMMAND_BUILTIN, BUILTIN_TYPE, buffer+5};
+    return (struct command){COMMAND_BUILTIN, BUILTIN_TYPE, "", buffer+5};
 
   //Check for executables
-  const char *path = getenv("PATH");
-  char *p = strtok(path, ":");
+  const char *env_path = getenv("PATH");
+  char *path_copy = strdup(env_path);
+  char *p = strtok(path_copy, ":");
   while (p) {
-    //strcat(p, "/");
-    //strcat(p, buffer);
-    printf("%s\n", p);
-    //if (access(p, X_OK) == 0)
-      //return (struct command){COMMAND_EXECUTABLE, BUILTIN_NONE, buffer+command_len};
+    char tmp[1024]; //build path to potential executable
+    snprintf(tmp, sizeof(tmp), "%s/%s", p, first_word);
+    if (access(tmp, X_OK) == 0)
+    {
+      char* exe_path = strdup(tmp);
+      return (struct command){COMMAND_EXECUTABLE, BUILTIN_NONE, exe_path, buffer+strlen(first_word)+1};
+    }
     p = strtok(nullptr, ":");
   }
-  //printf("%s", path);
 
-  return (struct command){COMMAND_UNKNOWN, BUILTIN_NONE, buffer};;
+  return (struct command){COMMAND_UNKNOWN, BUILTIN_NONE, "", buffer};;
 }
 
 void run_builtin(enum builtin builtin, char* arguments)
@@ -67,10 +70,18 @@ void run_builtin(enum builtin builtin, char* arguments)
     exit(0);
     break;
   case BUILTIN_TYPE:
-    if (parse_buffer(arguments).command_type != COMMAND_UNKNOWN)
+    struct command c = parse_buffer(arguments);
+    switch (c.command_type)
+    {
+    case COMMAND_BUILTIN:
       printf("%s is a shell builtin\n", arguments);
-    else
+      break;
+    case COMMAND_EXECUTABLE:
+      printf("%s is %s\n", arguments, c.executable_location);
+      break;
+    default:
       printf("%s: not found\n", arguments);
+    }
     break;
   default:
     printf("An error has occurred.\n");
@@ -79,9 +90,14 @@ void run_builtin(enum builtin builtin, char* arguments)
   }
 }
 
+void run_exec(char* executable_location, char* arguments)
+{
+  printf("%s\n", executable_location);
+}
+
 int main(int argc, char *argv[]) {
   char buffer[1024];
-  while (1)
+  while (1) //exit command terminates
   {
     setbuf(stdout, nullptr);
     printf("$ ");
@@ -96,7 +112,7 @@ int main(int argc, char *argv[]) {
       run_builtin(c.builtin, c.arguments);
       break;
     case COMMAND_EXECUTABLE:
-      exit(0);
+      run_exec(c.executable_location, c.arguments);
       break;
     default:
     case COMMAND_UNKNOWN:
