@@ -4,7 +4,6 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <linux/limits.h>
 
 enum command_type
 {
@@ -135,7 +134,7 @@ void run_builtin(enum builtin builtin, int argument_count, char** arguments)
     }
     break;
   case BUILTIN_PWD:
-    char cwd[PATH_MAX];
+    char cwd[1024];
     getcwd(cwd, sizeof(cwd));
     printf("%s\n", cwd);
     break;
